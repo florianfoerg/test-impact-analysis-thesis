@@ -1,0 +1,11 @@
+# requirements.txt
+
+# Python core modules
+os
+sys
+time
+
+# Third-party packages
+xml.etree.ElementTree
+shutil
+requests
