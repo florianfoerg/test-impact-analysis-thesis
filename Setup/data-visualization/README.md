@@ -1,6 +1,6 @@
 # Scripts for Visualizing Teamscale TIA Data
 
-This repository contains a collection of Python and Bash scripts that can be used for visualizing data collected through the [data collection process](../data_collection) in Teamscale TIA (Test Impact Analysis).
+This repository contains a collection of Python and Bash scripts that can be used for visualizing data collected through the [data collection process](../data-collection) in Teamscale TIA (Test Impact Analysis).
 
 ## How to Run
 
