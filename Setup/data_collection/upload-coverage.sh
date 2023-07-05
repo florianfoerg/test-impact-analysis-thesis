@@ -29,6 +29,8 @@ buggy_revision=$3
 fixed_revision=$4
 work_dir=$5
 
+script_dir=$(pwd)
+
 
 # check if parameters are empty
 if [ -z "$project_name" ] || [ -z "$bug_id" ] || [ -z "$buggy_revision" ] || [ -z "$work_dir" ]
@@ -81,8 +83,6 @@ install_if_not_exists "curl"
 print_info "Checkout $project_name ${bug_id}b"
 # checkout defects4j project fixed
 defects4j checkout -p $project_name -v ${bug_id}b -w $work_dir/$project_name
-
-collect_defects4j_test_data
 
 cd $work_dir/$project_name
 
