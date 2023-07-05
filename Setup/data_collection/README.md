@@ -20,7 +20,7 @@ To execute the data collection process on Ubuntu, please follow the steps below:
 1. Ensure that `python3` is installed correctly on your system.
 2. Run the following command to install the necessary Python dependencies: `pip install -r requirements.txt`
 3. Adjust the Teamscale configuration in [config.properties](config.properties). Make sure to provide the necessary credentials and connection details for your Teamscale instance.
-4. Open [teamscale_tia_test.py](teamscale_tia_test.py) and add the missing JaCoCo-Agent parameters according to your Teamscale setup.
+4. Open [adjust-pom.py](adjust-pom.py) and add the missing JaCoCo-Agent parameters according to your Teamscale setup.
 5. You can now run the script using the following command: `python3 teamscale_tia_test.py <working_directory> <defects4j_directory> <project_name> <teamscale_url>`
    Replace the placeholders `<working_directory>`, `<defects4j_directory>`, `<project_name>`, and `<teamscale_url>` with the appropriate values.
 6. The script will collect the necessary TIA data by executing tests on the Defects4J projects and capturing code coverage information using the Teamscale-JaCoCoAgent. The output will be saved in the file [tia_data.csv](tia_data.csv).
