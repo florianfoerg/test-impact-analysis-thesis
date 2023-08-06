@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================================================================================
-
+# Get prioritized relevant set from Teamscale. Writes results in .csv file.
 # ============================================================================================================================================
 # Note: Assumes correct command line input
 
@@ -37,22 +37,22 @@ script_dir=$(pwd)
 # check if parameters are empty
 if [ -z "$project_name" ] || [ -z "$bug_id" ] || [ -z "$buggy_revision" ] || [ -z "$ILP" ] || [ -z "$work_dir" ]
 then
-    echo "One or more parameters are empty"
+    print_info "One or more parameters are empty"
     exit 1
 fi
 
 # check if project_name is valid (must be one of the following: Chart, Cli, Closure, Codec, Collections, Compress, Csv, Gson, JacksonCore, JacksonDatabind, JacksonXml, Jsoup, JxPath, Lang, Math, Mockito, Time)
 if [ "$project_name" != "Chart" ] && [ "$project_name" != "Cli" ] && [ "$project_name" != "Closure" ] && [ "$project_name" != "Codec" ] && [ "$project_name" != "Collections" ] && [ "$project_name" != "Compress" ] && [ "$project_name" != "Csv" ] && [ "$project_name" != "Gson" ] && [ "$project_name" != "JacksonCore" ] && [ "$project_name" != "JacksonDatabind" ] && [ "$project_name" != "JacksonXml" ] && [ "$project_name" != "Jsoup" ] && [ "$project_name" != "JxPath" ] && [ "$project_name" != "Lang" ] && [ "$project_name" != "Math" ] && [ "$project_name" != "Mockito" ] && [ "$project_name" != "Time" ]
 then
-    echo "Project name is not valid"
+    print_info "Project name is not valid"
     exit 1
 fi
 
 # check if bug is integer
 if ! [[ "$bug_id" =~ ^[0-9]+$ ]]
 then
-    echo $bug_id
-    echo "Bug parameter must be an integer"
+    print_info $bug_id
+    print_info "Bug parameter must be an integer"
     exit 1
 fi
 
@@ -60,7 +60,7 @@ fi
 # check if ILP is boolean
 if [ "$ILP" != "true" ] && [ "$ILP" != "false" ]
 then
-    echo "ILP parameter must be true or false"
+    print_info "ILP parameter must be true or false"
     exit 1
 fi
 
@@ -118,22 +118,25 @@ time_stamp_end=$(curl -X 'GET' \
     -H 'X-Requested-By: ' | jq -r '.[0].timestamp')
 
 
+execution_time_relevant_set=0
+
 # method to get tia data from Teamscale and write into csv file
 get_data () {
     prioritization_strategy=$1
     max_execution_time=$2
+    max_execution_time_in_percent=$3
 
     # check if prioritization_strategy is valid (must be one of the following: NONE, FULLY_RANDOM, RANDOM_BUT_IMPACTED_FIRST, ADDITIONAL_COVERAGE_PER_TIME, CHEAP_ADDITIONAL_COVERAGE_PER_TIME)
     if [ "$prioritization_strategy" != "NONE" ] && [ "$prioritization_strategy" != "FULLY_RANDOM" ] && [ "$prioritization_strategy" != "RANDOM_BUT_IMPACTED_FIRST" ] && [ "$prioritization_strategy" != "ADDITIONAL_COVERAGE_PER_TIME" ] && [ "$prioritization_strategy" != "CHEAP_ADDITIONAL_COVERAGE_PER_TIME" ] && ["$prioritization_strategy" != "null"]
     then
-        echo "Prioritization strategy is not valid"
+        print_info "Prioritization strategy is not valid"
         exit 1
     fi
 
     # check if max_execution_time is integer
     if (! [[ "$max_execution_time" =~ ^[0-9]+$ ]]) && [ "$max_execution_time" != "null" ]
     then
-        echo "Max execution time parameter must be an integer"
+        print_info "Max execution time parameter must be an integer"
         exit 1
     fi
 
@@ -145,14 +148,19 @@ get_data () {
     fi
 
     # write meta data into csv file
-    echo -n "$project_name;$bug_id;$max_execution_time;$ILP;$prioritization_strategy;" >> $work_dir/tia_data.csv
+    echo -n "$project_name;$bug_id;$max_execution_time_in_percent;$ILP;$prioritization_strategy;" >> $work_dir/tia_data.csv
 
     if [ "$prioritization_strategy" == "null" ] && [ "$max_execution_time" == "null" ]
     then
-        echo "Testing first selection ..."
+        print_info "Testing first selection ..."
+        relevant_set_tests=$(curl -X 'GET' "http://$teamscale_url:8080/api/v8.9/projects/$project_name/impacted-tests?baseline=$time_stamp_start&end=$time_stamp_end&prioritization-strategy=NONE&include-non-impacted=false&include-failed-and-skipped=false&include-added-tests=true" -H 'accept: application/json'   -H 'accept: application/json' | tr ';' ',')
         # write Teamscale data into csv file for special case of only first selection
-        curl -X 'GET' "http://$teamscale_url:8080/api/v8.9/projects/$project_name/impacted-tests?baseline=$time_stamp_start&end=$time_stamp_end&prioritization-strategy=NONE&include-non-impacted=false&include-failed-and-skipped=false&include-added-tests=true" -H 'accept: application/json'   -H 'X-Requested-By: ' | tr ';' ',' >> $work_dir/tia_data.csv
-    
+        echo -n $relevant_set_tests >> $work_dir/tia_data.csv
+
+        cd $script_dir
+        execution_time_relevant_set=$(python3 compute-runtime-all-tests.py $relevant_set_tests)
+        cd $work_dir/$project_name
+
     else
         print_info "Testing $prioritization_strategy;$max_execution_time ..."
         # write Teamscale data into csv file
@@ -165,19 +173,19 @@ get_data () {
 
 }
 
-get_data "null" "null"
+get_data "null" "null" "null"
 
-get_data "NONE" 10
-get_data "NONE" 100
-get_data "NONE" 1000
-get_data "NONE" 10000
+get_data "NONE" $((execution_time_relevant_set * 2 / 10)) "0.2"
+get_data "NONE" $((execution_time_relevant_set * 4 / 10)) "0.4"
+get_data "NONE" $((execution_time_relevant_set * 6 / 10)) "0.6"
+get_data "NONE" $((execution_time_relevant_set * 8 / 10)) "0.8"
 
-get_data "FULLY_RANDOM" 10
-get_data "FULLY_RANDOM" 100
-get_data "FULLY_RANDOM" 1000
-get_data "FULLY_RANDOM" 10000
+get_data "FULLY_RANDOM" $((execution_time_relevant_set * 2 / 10)) "0.2"
+get_data "FULLY_RANDOM" $((execution_time_relevant_set * 4 / 10)) "0.4"
+get_data "FULLY_RANDOM" $((execution_time_relevant_set * 6 / 10)) "0.6"
+get_data "FULLY_RANDOM" $((execution_time_relevant_set * 8 / 10)) "0.8"
 
-get_data "ADDITIONAL_COVERAGE_PER_TIME" 10
-get_data "ADDITIONAL_COVERAGE_PER_TIME" 100
-get_data "ADDITIONAL_COVERAGE_PER_TIME" 1000
-get_data "ADDITIONAL_COVERAGE_PER_TIME" 10000
+get_data "ADDITIONAL_COVERAGE_PER_TIME" $((execution_time_relevant_set * 2 / 10)) "0.2"
+get_data "ADDITIONAL_COVERAGE_PER_TIME" $((execution_time_relevant_set * 4 / 10)) "0.4"
+get_data "ADDITIONAL_COVERAGE_PER_TIME" $((execution_time_relevant_set * 6 / 10)) "0.6"
+get_data "ADDITIONAL_COVERAGE_PER_TIME" $((execution_time_relevant_set * 8 / 10)) "0.8"
