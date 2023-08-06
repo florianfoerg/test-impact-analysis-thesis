@@ -27,9 +27,9 @@ def generate_plot(only_additional_prioritization):
             data.append(row)
 
     # Variables to store error finding rates
-    ilp_true_rates = []
-    ilp_false_rates = []
-    times = []
+    ilp_true_rates = [0,0,0,0]
+    ilp_false_rates = [0,0,0,0]
+    times = [0.2, 0.4, 0.6, 0.8]
     errors_after_first_selection_ilp_true = 0
     errors_after_first_selection_ilp_false = 0
 
@@ -110,6 +110,10 @@ def generate_plot(only_additional_prioritization):
     bar_width = 0.4
     spacing = 0.2
 
+    # y axis values * 100 for percent
+    ilp_true_rates = [x * 100 for x in ilp_true_rates]
+    ilp_false_rates = [x * 100 for x in ilp_false_rates]
+
     # Plot the error finding rates
     plt.bar(x_positions - spacing, ilp_true_rates, width=bar_width, label='ILP True', color = "cornflowerblue")
     plt.bar(x_positions + spacing, ilp_false_rates, width=bar_width, label='ILP False', color = "lightgray")
@@ -130,6 +134,8 @@ def generate_plot(only_additional_prioritization):
 
         # Save the plot as an SVG file
         plt.savefig('./out/plot-error-detection-rate.svg', format='svg')
+
+    plt.close()
 
 
 if __name__ == '__main__':
